@@ -42,15 +42,18 @@ def create_batches(imgs, batch_size):
 def draw_bbox(imgs, bbox, colors, classes):
     img = imgs[int(bbox[0])]
     label = classes[int(bbox[-1])]
-    p1 = tuple(bbox[1:3].int())
-    p2 = tuple(bbox[3:5].int())
-    color = random.choice(colors)
-    cv2.rectangle(img, p1, p2, color, 2)
-    text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 1, 1)[0]
-    p3 = (p1[0], p1[1] - text_size[1] - 4)
-    p4 = (p1[0] + text_size[0] + 4, p1[1])
-    cv2.rectangle(img, p3, p4, color, -1)
-    cv2.putText(img, label, p1, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], 1)
+    #print(label)
+    #select only classes that are of interest
+    if label in ['person','knife']:
+        p1 = tuple(bbox[1:3].int())
+        p2 = tuple(bbox[3:5].int())
+        color = random.choice(colors)
+        cv2.rectangle(img, p1, p2, color, 2)
+        text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 1, 1)[0]
+        p3 = (p1[0], p1[1] - text_size[1] - 4)
+        p4 = (p1[0] + text_size[0] + 4, p1[1])
+        cv2.rectangle(img, p3, p4, color, -1)
+        cv2.putText(img, label, p1, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], 1)
 
 def detect_video(model, args):
 
@@ -58,6 +61,7 @@ def detect_video(model, args):
 
     colors = pkl.load(open("pallete", "rb"))
     classes = load_classes("data/coco.names")
+    #classes_new = load_classes("data/coco - Copy.names")
     colors = [colors[1]]
     if args.webcam:
         cap = cv2.VideoCapture(int(args.input))
@@ -86,10 +90,13 @@ def detect_video(model, args):
                 frame_tensor = frame_tensor.cuda()
 
             detections = model(frame_tensor, args.cuda).cpu()
+            #print(detections)
             detections = process_result(detections, args.obj_thresh, args.nms_thresh)
+            #print(detections)
             if len(detections) != 0:
                 detections = transform_result(detections, [frame], input_size)
                 for detection in detections:
+                    #print(detection)
                     draw_bbox([frame], detection, colors, classes)
 
             if not args.no_show:
@@ -129,6 +136,7 @@ def detect_image(model, args):
     # load colors and classes
     colors = pkl.load(open("pallete", "rb"))
     classes = load_classes("data/coco.names")
+    #classes_new = load_classes("data/coco - Copy.names")
 
     if not osp.exists(args.outdir):
         os.makedirs(args.outdir)
@@ -148,6 +156,7 @@ def detect_image(model, args):
 
         detections = transform_result(detections, img_batch, input_size)
         for detection in detections:
+            print(detection)
             draw_bbox(img_batch, detection, colors, classes)
 
         for i, img in enumerate(img_batch):
